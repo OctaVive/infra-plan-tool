@@ -22,6 +22,7 @@ class OrderStatus(str, enum.Enum):
 LINE_TYPE_MAP = {
     "onnet": LineType.ONNET,
     "offnet": LineType.OFFNET,
+    "nearnet": LineType.OFFNET,
     "special": LineType.SPECIAL,
 }
 

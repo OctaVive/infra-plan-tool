@@ -14,10 +14,8 @@ from app.models.models import LineType, OrderChange, ReportUpload
 from app.schemas.schemas import (
     ClearDataRequest,
     ClearDataResponse,
-    CustomerCard,
     DashboardResponse,
     KpiResponse,
-    OrderDetail,
     PaginatedChanges,
     OrderChangeResponse,
     ReportUploadResponse,
@@ -25,8 +23,10 @@ from app.schemas.schemas import (
     SettingsResponse,
     SlaSettingsUpdate,
 )
+from app.services.dashboard_service import build_dashboard, compute_kpi
 from app.services.data_service import clear_all_data
 from app.services.report_service import DuplicateReportError, process_report_upload
+from app.services.sla import sla_business_days_over
 from app.services.settings_service import (
     get_retention_days,
     get_sla_days,
@@ -82,84 +82,14 @@ async def get_latest_report(db: AsyncSession = Depends(get_db)):
     return upload
 
 
-async def _get_latest_upload(db: AsyncSession) -> ReportUpload | None:
-    result = await db.execute(
-        select(ReportUpload).order_by(ReportUpload.uploaded_at.desc()).limit(1)
-    )
-    return result.scalar_one_or_none()
-
-
 @router.get("/dashboard", response_model=DashboardResponse)
 async def get_dashboard(db: AsyncSession = Depends(get_db)):
-    latest = await _get_latest_upload(db)
-    if not latest:
-        return DashboardResponse(last_upload=None, customers=[])
-
-    result = await db.execute(
-        select(OrderChange).where(OrderChange.report_upload_id == latest.id)
-    )
-    changes = result.scalars().all()
-
-    if latest.is_first_upload:
-        relevant = [c for c in changes if c.is_new_order]
-    else:
-        relevant = [c for c in changes if c.is_date_moved_later]
-
-    by_bedrijf: dict[str, list[OrderChange]] = {}
-    for change in relevant:
-        by_bedrijf.setdefault(change.bedrijf, []).append(change)
-
-    customers: list[CustomerCard] = []
-    for bedrijf, bedrijf_changes in sorted(by_bedrijf.items()):
-        has_sla_risk = any(c.is_sla_risk for c in bedrijf_changes)
-        orders = [
-            OrderDetail(
-                order_number=c.order_number,
-                line_type=c.line_type.value,
-                geplaatst_op=c.geplaatst_op,
-                previous_gepland=c.previous_gepland,
-                new_gepland=c.new_gepland,
-                sla_deadline=c.sla_deadline,
-                days_shifted=c.days_shifted,
-                is_sla_risk=c.is_sla_risk,
-                is_new_order=c.is_new_order,
-            )
-            for c in bedrijf_changes
-        ]
-        customers.append(
-            CustomerCard(
-                bedrijf=bedrijf,
-                has_change=True,
-                has_sla_risk=has_sla_risk,
-                order_count=len(orders),
-                orders=orders,
-            )
-        )
-
-    customers.sort(key=lambda c: (not c.has_sla_risk, c.bedrijf))
-
-    return DashboardResponse(
-        last_upload=ReportUploadResponse.model_validate(latest),
-        customers=customers,
-    )
+    return await build_dashboard(db)
 
 
 @router.get("/dashboard/kpi", response_model=KpiResponse)
 async def get_kpi(db: AsyncSession = Depends(get_db)):
-    latest = await _get_latest_upload(db)
-    if not latest:
-        return KpiResponse(
-            sla_risk_count=0,
-            changes_detected=0,
-            orders_imported=0,
-            last_upload_at=None,
-        )
-    return KpiResponse(
-        sla_risk_count=latest.sla_risk_count,
-        changes_detected=latest.changes_detected,
-        orders_imported=latest.orders_imported,
-        last_upload_at=latest.uploaded_at,
-    )
+    return await compute_kpi(db)
 
 
 def _apply_change_filters(query, **filters):
@@ -186,6 +116,37 @@ def _apply_change_filters(query, **filters):
     return q
 
 
+def _change_to_response(change: OrderChange) -> OrderChangeResponse:
+    days_over = (
+        sla_business_days_over(change.sla_deadline, change.new_gepland)
+        if change.is_sla_risk
+        else None
+    )
+    return OrderChangeResponse(
+        id=change.id,
+        report_upload_id=change.report_upload_id,
+        order_number=change.order_number,
+        bedrijf=change.bedrijf,
+        line_type=change.line_type.value,
+        geplaatst_op=change.geplaatst_op,
+        previous_gepland=change.previous_gepland,
+        new_gepland=change.new_gepland,
+        sla_deadline=change.sla_deadline,
+        days_shifted=change.days_shifted,
+        sla_days_over=days_over,
+        is_date_moved_later=change.is_date_moved_later,
+        is_sla_risk=change.is_sla_risk,
+        is_new_order=change.is_new_order,
+        created_at=change.created_at,
+    )
+
+
+def _sla_days_sort_key(change: OrderChange) -> tuple[int, int]:
+    if not change.is_sla_risk:
+        return (1, 0)
+    return (0, sla_business_days_over(change.sla_deadline, change.new_gepland))
+
+
 @router.get("/changes", response_model=PaginatedChanges)
 async def list_changes(
     bedrijf: str | None = None,
@@ -194,6 +155,7 @@ async def list_changes(
     date_from: datetime | None = None,
     date_to: datetime | None = None,
     search: str | None = None,
+    sort_sla_days: str | None = Query(None, pattern="^(asc|desc)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
@@ -209,19 +171,27 @@ async def list_changes(
     base = select(OrderChange)
     filtered = _apply_change_filters(base, **filters)
 
-    count_result = await db.execute(select(func.count()).select_from(filtered.subquery()))
-    total = count_result.scalar() or 0
+    if sort_sla_days:
+        result = await db.execute(filtered)
+        all_changes = list(result.scalars().all())
+        all_changes.sort(key=_sla_days_sort_key, reverse=(sort_sla_days == "desc"))
+        total = len(all_changes)
+        items = all_changes[(page - 1) * page_size : page * page_size]
+    else:
+        count_result = await db.execute(select(func.count()).select_from(filtered.subquery()))
+        total = count_result.scalar() or 0
 
-    result = await db.execute(
-        filtered.order_by(OrderChange.created_at.desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-    )
-    items = result.scalars().all()
+        result = await db.execute(
+            filtered.order_by(OrderChange.created_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+        items = list(result.scalars().all())
+
     pages = max(1, (total + page_size - 1) // page_size)
 
     return PaginatedChanges(
-        items=[OrderChangeResponse.model_validate(i) for i in items],
+        items=[_change_to_response(i) for i in items],
         total=total,
         page=page,
         page_size=page_size,
@@ -249,14 +219,17 @@ async def export_changes(
     writer.writerow([
         "order_number", "bedrijf", "line_type", "geplaatst_op",
         "previous_gepland", "new_gepland", "sla_deadline", "days_shifted",
-        "is_sla_risk", "is_new_order", "created_at",
+        "sla_days_over", "is_sla_risk", "is_new_order", "created_at",
     ])
     for c in changes:
+        days_over = (
+            sla_business_days_over(c.sla_deadline, c.new_gepland) if c.is_sla_risk else ""
+        )
         writer.writerow([
             c.order_number, c.bedrijf, c.line_type.value, c.geplaatst_op.isoformat(),
             c.previous_gepland.isoformat() if c.previous_gepland else "",
             c.new_gepland.isoformat(), c.sla_deadline.isoformat() if c.sla_deadline else "",
-            c.days_shifted or "", c.is_sla_risk, c.is_new_order, c.created_at.isoformat(),
+            c.days_shifted or "", days_over, c.is_sla_risk, c.is_new_order, c.created_at.isoformat(),
         ])
 
     output.seek(0)

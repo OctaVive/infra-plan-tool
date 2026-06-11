@@ -67,6 +67,8 @@ def _build_minimal_xlsx() -> bytes:
 def test_parse_line_type():
     assert parse_line_type("Onnet").value == "onnet"
     assert parse_line_type("Offnet").value == "offnet"
+    assert parse_line_type("nearnet").value == "offnet"
+    assert parse_line_type("Nearnet").value == "offnet"
     assert parse_line_type("Special").value == "special"
     assert parse_line_type("") is None
 

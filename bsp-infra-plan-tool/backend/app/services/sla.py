@@ -27,3 +27,21 @@ def is_sla_risk(new_gepland: date, sla_deadline: date | None) -> bool:
     if sla_deadline is None:
         return False
     return new_gepland > sla_deadline
+
+
+def sla_business_days_over(
+    sla_deadline: date | None,
+    gepland: date,
+    country: str = "NL",
+) -> int:
+    """Count business days gepland exceeds the SLA deadline (0 when on time)."""
+    if sla_deadline is None or gepland <= sla_deadline:
+        return 0
+    nl_holidays = holidays.country_holidays(country)
+    current = sla_deadline
+    counted = 0
+    while current < gepland:
+        current += timedelta(days=1)
+        if current.weekday() < 5 and current not in nl_holidays:
+            counted += 1
+    return counted

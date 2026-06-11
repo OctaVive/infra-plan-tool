@@ -32,6 +32,7 @@ export interface OrderDetail {
   new_gepland: string;
   sla_deadline: string | null;
   days_shifted: number | null;
+  sla_days_over: number | null;
   is_sla_risk: boolean;
   is_new_order: boolean;
 }
@@ -67,6 +68,7 @@ export interface OrderChange {
   new_gepland: string;
   sla_deadline: string | null;
   days_shifted: number | null;
+  sla_days_over: number | null;
   is_date_moved_later: boolean;
   is_sla_risk: boolean;
   is_new_order: boolean;
@@ -136,4 +138,35 @@ export function formatDate(iso: string | null | undefined): string {
 export function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleString("nl-NL");
+}
+
+export function formatSlaRiskLabel(daysOver: number | null | undefined): string {
+  if (!daysOver || daysOver <= 0) return "SLA-risico";
+  const unit = daysOver === 1 ? "werkdag" : "werkdagen";
+  return `SLA-risico (+${daysOver} ${unit})`;
+}
+
+export type SlaDaysSort = "default" | "asc" | "desc";
+
+export function maxSlaDaysOver(
+  orders: Pick<OrderDetail, "sla_days_over" | "is_sla_risk">[]
+): number {
+  const values = orders.filter((o) => o.is_sla_risk).map((o) => o.sla_days_over ?? 0);
+  return values.length ? Math.max(...values) : 0;
+}
+
+export function sortCustomersBySlaDays<T extends CustomerCard>(
+  customers: T[],
+  sort: SlaDaysSort
+): T[] {
+  if (sort === "default") return customers;
+
+  return [...customers].sort((a, b) => {
+    const aDays = maxSlaDaysOver(a.orders);
+    const bDays = maxSlaDaysOver(b.orders);
+    if (aDays === 0 && bDays === 0) return a.bedrijf.localeCompare(b.bedrijf, "nl");
+    if (aDays === 0) return 1;
+    if (bDays === 0) return -1;
+    return sort === "asc" ? aDays - bDays : bDays - aDays;
+  });
 }

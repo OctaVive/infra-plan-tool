@@ -53,6 +53,7 @@ class OrderDetail(BaseModel):
     new_gepland: date
     sla_deadline: date | None
     days_shifted: int | None
+    sla_days_over: int | None = None
     is_sla_risk: bool
     is_new_order: bool
 
@@ -88,12 +89,11 @@ class OrderChangeResponse(BaseModel):
     new_gepland: date
     sla_deadline: date | None
     days_shifted: int | None
+    sla_days_over: int | None = None
     is_date_moved_later: bool
     is_sla_risk: bool
     is_new_order: bool
     created_at: datetime
-
-    model_config = {"from_attributes": True}
 
 
 class PaginatedChanges(BaseModel):

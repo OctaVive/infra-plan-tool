@@ -14,22 +14,26 @@ function isAllowedReportFile(file: File): boolean {
 export default function UploadPage() {
   const [dragOver, setDragOver] = useState(false);
   const [result, setResult] = useState<ReportUpload | null>(null);
+  const [activeSlaRisk, setActiveSlaRisk] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: api.uploadReport,
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       setResult(data);
       setError(null);
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["kpi"] });
       queryClient.invalidateQueries({ queryKey: ["changes"] });
+      const kpi = await api.getKpi();
+      setActiveSlaRisk(kpi.sla_risk_count);
     },
     onError: (err: Error) => {
       setError(err.message);
       setResult(null);
+      setActiveSlaRisk(null);
     },
   });
 
@@ -122,12 +126,12 @@ export default function UploadPage() {
               <dd className="font-medium">{result.orders_imported}</dd>
             </div>
             <div>
-              <dt className="text-gray-500">Wijzigingen</dt>
+              <dt className="text-gray-500">Wijzigingen (deze upload)</dt>
               <dd className="font-medium">{result.changes_detected}</dd>
             </div>
             <div>
-              <dt className="text-gray-500">SLA-risico</dt>
-              <dd className="font-medium text-red-600">{result.sla_risk_count}</dd>
+              <dt className="text-gray-500">Actieve SLA-risico&apos;s</dt>
+              <dd className="font-medium text-red-600">{activeSlaRisk ?? result.sla_risk_count}</dd>
             </div>
           </dl>
           {result.warnings && (

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ChevronDown, ChevronUp, Search } from "lucide-react";
-import { api, formatDate, formatDateTime, type CustomerCard } from "@/api/client";
+import { api, formatDate, formatDateTime, formatSlaRiskLabel, sortCustomersBySlaDays, type CustomerCard, type SlaDaysSort } from "@/api/client";
+import SlaDaysSortButtons from "@/components/SlaDaysSortButtons";
 
 function CustomerCardComponent({ customer }: { customer: CustomerCard }) {
   const [expanded, setExpanded] = useState(false);
@@ -57,7 +58,7 @@ function CustomerCardComponent({ customer }: { customer: CustomerCard }) {
                   <td className="px-4 py-2">
                     {o.is_sla_risk ? (
                       <span className="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
-                        SLA-risico
+                        {formatSlaRiskLabel(o.sla_days_over)}
                       </span>
                     ) : o.is_new_order ? (
                       <span className="px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
@@ -82,6 +83,7 @@ function CustomerCardComponent({ customer }: { customer: CustomerCard }) {
 export default function DashboardPage() {
   const [search, setSearch] = useState("");
   const [slaFilter, setSlaFilter] = useState<"all" | "risk">("all");
+  const [slaDaysSort, setSlaDaysSort] = useState<SlaDaysSort>("default");
 
   const { data: dashboard, isLoading, error } = useQuery({
     queryKey: ["dashboard"],
@@ -105,16 +107,19 @@ export default function DashboardPage() {
     );
   }
 
-  const customers = (dashboard?.customers ?? []).filter((c) => {
-    if (slaFilter === "risk" && !c.has_sla_risk) return false;
-    if (search && !c.bedrijf.toLowerCase().includes(search.toLowerCase())) {
-      const matchOrder = c.orders.some((o) =>
-        o.order_number.toLowerCase().includes(search.toLowerCase())
-      );
-      if (!matchOrder) return false;
-    }
-    return true;
-  });
+  const customers = sortCustomersBySlaDays(
+    (dashboard?.customers ?? []).filter((c) => {
+      if (slaFilter === "risk" && !c.has_sla_risk) return false;
+      if (search && !c.bedrijf.toLowerCase().includes(search.toLowerCase())) {
+        const matchOrder = c.orders.some((o) =>
+          o.order_number.toLowerCase().includes(search.toLowerCase())
+        );
+        if (!matchOrder) return false;
+      }
+      return true;
+    }),
+    slaDaysSort
+  );
 
   return (
     <div className="space-y-6">
@@ -149,25 +154,28 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-          <input
-            type="text"
-            placeholder="Zoek op bedrijf of order..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
-          />
+      <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+        <div className="flex flex-col sm:flex-row gap-3 flex-1">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input
+              type="text"
+              placeholder="Zoek op bedrijf of order..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+            />
+          </div>
+          <select
+            value={slaFilter}
+            onChange={(e) => setSlaFilter(e.target.value as "all" | "risk")}
+            className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+          >
+            <option value="all">Alle wijzigingen</option>
+            <option value="risk">Alleen SLA-risico</option>
+          </select>
         </div>
-        <select
-          value={slaFilter}
-          onChange={(e) => setSlaFilter(e.target.value as "all" | "risk")}
-          className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
-        >
-          <option value="all">Alle wijzigingen</option>
-          <option value="risk">Alleen SLA-risico</option>
-        </select>
+        <SlaDaysSortButtons value={slaDaysSort} onChange={setSlaDaysSort} />
       </div>
 
       {!dashboard?.last_upload ? (

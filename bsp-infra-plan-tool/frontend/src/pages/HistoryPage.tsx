@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Download } from "lucide-react";
-import { api, formatDate, formatDateTime } from "@/api/client";
+import { api, formatDate, formatDateTime, formatSlaRiskLabel, type SlaDaysSort } from "@/api/client";
+import SlaDaysSortButtons from "@/components/SlaDaysSortButtons";
 
 export default function HistoryPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [slaFilter, setSlaFilter] = useState<string>("all");
   const [lineType, setLineType] = useState<string>("all");
+  const [slaDaysSort, setSlaDaysSort] = useState<SlaDaysSort>("default");
 
   const params = new URLSearchParams();
   params.set("page", String(page));
@@ -15,9 +17,10 @@ export default function HistoryPage() {
   if (search) params.set("search", search);
   if (slaFilter === "risk") params.set("is_sla_risk", "true");
   if (lineType !== "all") params.set("line_type", lineType);
+  if (slaDaysSort !== "default") params.set("sort_sla_days", slaDaysSort);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["changes", page, search, slaFilter, lineType],
+    queryKey: ["changes", page, search, slaFilter, lineType, slaDaysSort],
     queryFn: () => api.getChanges(params),
   });
 
@@ -54,32 +57,41 @@ export default function HistoryPage() {
         </button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <input
-          type="text"
-          placeholder="Zoek op bedrijf of order..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="flex-1 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+      <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+        <div className="flex flex-col sm:flex-row gap-3 flex-1">
+          <input
+            type="text"
+            placeholder="Zoek op bedrijf of order..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="flex-1 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+          />
+          <select
+            value={slaFilter}
+            onChange={(e) => { setSlaFilter(e.target.value); setPage(1); }}
+            className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+          >
+            <option value="all">Alle statussen</option>
+            <option value="risk">Alleen SLA-risico</option>
+          </select>
+          <select
+            value={lineType}
+            onChange={(e) => { setLineType(e.target.value); setPage(1); }}
+            className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+          >
+            <option value="all">Alle lijn types</option>
+            <option value="onnet">Onnet</option>
+            <option value="offnet">Offnet</option>
+            <option value="special">Special</option>
+          </select>
+        </div>
+        <SlaDaysSortButtons
+          value={slaDaysSort}
+          onChange={(value) => {
+            setSlaDaysSort(value);
+            setPage(1);
+          }}
         />
-        <select
-          value={slaFilter}
-          onChange={(e) => { setSlaFilter(e.target.value); setPage(1); }}
-          className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
-        >
-          <option value="all">Alle statussen</option>
-          <option value="risk">Alleen SLA-risico</option>
-        </select>
-        <select
-          value={lineType}
-          onChange={(e) => { setLineType(e.target.value); setPage(1); }}
-          className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
-        >
-          <option value="all">Alle lijn types</option>
-          <option value="onnet">Onnet</option>
-          <option value="offnet">Offnet</option>
-          <option value="special">Special</option>
-        </select>
       </div>
 
       <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-x-auto">
@@ -113,7 +125,9 @@ export default function HistoryPage() {
                   <td className="px-4 py-3">{formatDate(c.sla_deadline)}</td>
                   <td className="px-4 py-3">
                     {c.is_sla_risk ? (
-                      <span className="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">SLA-risico</span>
+                      <span className="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                        {formatSlaRiskLabel(c.sla_days_over)}
+                      </span>
                     ) : c.is_new_order ? (
                       <span className="px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Nieuw</span>
                     ) : (
