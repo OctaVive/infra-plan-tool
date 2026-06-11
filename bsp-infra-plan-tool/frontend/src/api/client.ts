@@ -87,6 +87,13 @@ export interface Settings {
   retention_days: number;
 }
 
+export interface ClearDataResult {
+  changes_deleted: number;
+  orders_deleted: number;
+  uploads_deleted: number;
+  message: string;
+}
+
 export const api = {
   getDashboard: () => request<Dashboard>("/api/v1/dashboard"),
   getKpi: () => request<Kpi>("/api/v1/dashboard/kpi"),
@@ -112,6 +119,12 @@ export const api = {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ retention_days }),
+    }),
+  clearData: () =>
+    request<ClearDataResult>("/api/v1/admin/clear-data", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ confirm: true }),
     }),
 };
 

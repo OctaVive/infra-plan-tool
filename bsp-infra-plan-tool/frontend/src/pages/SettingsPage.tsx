@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Save, CheckCircle } from "lucide-react";
+import { Save, CheckCircle, Trash2, AlertTriangle, X } from "lucide-react";
 import { api } from "@/api/client";
 
 export default function SettingsPage() {
@@ -15,6 +15,9 @@ export default function SettingsPage() {
   const [special, setSpecial] = useState(60);
   const [retention, setRetention] = useState(365);
   const [saved, setSaved] = useState(false);
+  const [showClearModal, setShowClearModal] = useState(false);
+  const [clearConfirmed, setClearConfirmed] = useState(false);
+  const [clearResult, setClearResult] = useState<string | null>(null);
 
   useEffect(() => {
     if (settings) {
@@ -43,6 +46,24 @@ export default function SettingsPage() {
     },
   });
 
+  const clearMutation = useMutation({
+    mutationFn: api.clearData,
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["kpi"] });
+      queryClient.invalidateQueries({ queryKey: ["changes"] });
+      setShowClearModal(false);
+      setClearConfirmed(false);
+      setClearResult(result.message);
+    },
+  });
+
+  const closeClearModal = () => {
+    setShowClearModal(false);
+    setClearConfirmed(false);
+  };
+
   if (isLoading) {
     return <div className="text-center py-20 text-gray-500">Laden...</div>;
   }
@@ -60,6 +81,13 @@ export default function SettingsPage() {
         <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm">
           <CheckCircle size={16} />
           Instellingen opgeslagen
+        </div>
+      )}
+
+      {clearResult && (
+        <div className="flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 text-green-700 dark:text-green-300 text-sm">
+          <CheckCircle size={16} className="shrink-0" />
+          {clearResult}
         </div>
       )}
 
@@ -126,6 +154,110 @@ export default function SettingsPage() {
           Retentie opslaan
         </button>
       </section>
+
+      <section className="rounded-xl border border-red-200 dark:border-red-900/50 bg-white dark:bg-gray-900 p-6 space-y-4">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="text-red-500 shrink-0 mt-0.5" size={20} />
+          <div>
+            <h3 className="font-semibold text-lg text-red-700 dark:text-red-400">Gegevens wissen</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Verwijdert alle orders, rapport-uploads en wijzigingsgeschiedenis. SLA- en
+              retentie-instellingen blijven behouden. Deze actie kan niet ongedaan worden gemaakt.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => {
+            setClearResult(null);
+            setShowClearModal(true);
+          }}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-red-300 dark:border-red-800 text-red-700 dark:text-red-400 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20"
+        >
+          <Trash2 size={16} />
+          Alle gegevens wissen
+        </button>
+      </section>
+
+      {showClearModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={closeClearModal}
+            aria-hidden
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="clear-data-title"
+            className="relative w-full max-w-md rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 shadow-xl"
+          >
+            <button
+              onClick={closeClearModal}
+              className="absolute top-4 right-4 p-1 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+              aria-label="Sluiten"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="flex items-start gap-3 mb-4">
+              <div className="p-2 rounded-full bg-red-100 dark:bg-red-900/30">
+                <AlertTriangle className="text-red-600 dark:text-red-400" size={24} />
+              </div>
+              <div>
+                <h3 id="clear-data-title" className="font-semibold text-lg">
+                  Alle gegevens wissen?
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                  Dit verwijdert permanent:
+                </p>
+                <ul className="text-sm text-gray-600 dark:text-gray-300 mt-2 list-disc list-inside space-y-1">
+                  <li>Alle geïmporteerde orders</li>
+                  <li>Alle rapport-uploads</li>
+                  <li>De volledige wijzigingsgeschiedenis</li>
+                </ul>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
+                  SLA- en retentie-instellingen worden <strong>niet</strong> verwijderd.
+                </p>
+              </div>
+            </div>
+
+            <label className="flex items-start gap-3 cursor-pointer mb-6">
+              <input
+                type="checkbox"
+                checked={clearConfirmed}
+                onChange={(e) => setClearConfirmed(e.target.checked)}
+                className="mt-1 rounded border-gray-300"
+              />
+              <span className="text-sm">
+                Ik begrijp dat deze actie niet ongedaan gemaakt kan worden
+              </span>
+            </label>
+
+            {clearMutation.isError && (
+              <p className="text-sm text-red-600 dark:text-red-400 mb-4">
+                {(clearMutation.error as Error).message}
+              </p>
+            )}
+
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={closeClearModal}
+                disabled={clearMutation.isPending}
+                className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                Annuleren
+              </button>
+              <button
+                onClick={() => clearMutation.mutate()}
+                disabled={!clearConfirmed || clearMutation.isPending}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {clearMutation.isPending ? "Bezig..." : "Ja, gegevens wissen"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

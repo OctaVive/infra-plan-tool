@@ -11,9 +11,9 @@ from app.models.models import (
     OrderStatus,
     ReportUpload,
 )
+from app.services.report_types import ParseResult, file_content_hash
 from app.services.settings_service import get_sla_days, sla_configured
 from app.services.sla import calculate_sla_deadline, is_sla_risk
-from app.services.xml_parser import ParseResult, ParsedOrder, file_content_hash
 
 logger = logging.getLogger(__name__)
 

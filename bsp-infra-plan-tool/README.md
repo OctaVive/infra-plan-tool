@@ -62,4 +62,4 @@ See [docs/TECHNICAL_DESIGN.md](docs/TECHNICAL_DESIGN.md) and [docs/IMPLEMENTATIO
 
 ## Sample data
 
-Use anonymized Excel-XML exports with worksheet `Lijn orders` matching the VodafoneZiggo/KPN report format.
+Use anonymized Excel or Excel-XML exports with worksheet `Lijn orders` matching the VodafoneZiggo/KPN report format.

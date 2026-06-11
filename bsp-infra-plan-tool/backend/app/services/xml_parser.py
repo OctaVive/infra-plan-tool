@@ -1,72 +1,21 @@
-import hashlib
 import logging
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass, field
-from datetime import date, datetime
-from typing import Any
 
 from app.models.models import parse_line_type
+from app.services.report_types import (
+    REQUIRED_COLUMNS,
+    ParseResult,
+    ParsedOrder,
+    cell_text,
+    finalize_parse_result,
+    is_allowed_order_type,
+    parse_date_value,
+    parse_datetime_value,
+)
 
 logger = logging.getLogger(__name__)
 
 NS = {"ss": "urn:schemas-microsoft-com:office:spreadsheet"}
-
-REQUIRED_COLUMNS = {
-    "Order number",
-    "Bedrijf",
-    "Geplaatst op",
-    "Gepland",
-    "On-/Offnet",
-}
-
-
-@dataclass
-class ParsedOrder:
-    order_number: str
-    bedrijf: str
-    geplaatst_op: date
-    gepland: date
-    line_type: str
-
-
-@dataclass
-class ParseResult:
-    orders: list[ParsedOrder] = field(default_factory=list)
-    report_date: datetime | None = None
-    warnings: list[str] = field(default_factory=list)
-    skipped_rows: int = 0
-
-
-def file_content_hash(content: bytes) -> str:
-    return hashlib.sha256(content).hexdigest()
-
-
-def _parse_date(value: str | None) -> date | None:
-    if not value or not value.strip():
-        return None
-    value = value.strip()
-    try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00")).date()
-    except ValueError:
-        pass
-    for fmt, size in (
-        ("%Y-%m-%dT%H:%M:%S.%f", 26),
-        ("%Y-%m-%dT%H:%M:%S", 19),
-        ("%Y-%m-%d %H:%M:%S", 19),
-        ("%Y-%m-%d", 10),
-    ):
-        try:
-            return datetime.strptime(value[:size], fmt).date()
-        except ValueError:
-            continue
-    return None
-
-
-def _cell_text(cell: ET.Element) -> str:
-    data = cell.find("ss:Data", NS)
-    if data is not None and data.text:
-        return data.text.strip()
-    return ""
 
 
 def _row_cells(row: ET.Element) -> dict[int, str]:
@@ -76,7 +25,8 @@ def _row_cells(row: ET.Element) -> dict[int, str]:
         index_attr = cell.get(f"{{{NS['ss']}}}Index")
         if index_attr:
             col = int(index_attr)
-        cells[col] = _cell_text(cell)
+        data = cell.find("ss:Data", NS)
+        cells[col] = data.text.strip() if data is not None and data.text else ""
         col += 1
     return cells
 
@@ -88,7 +38,7 @@ def _find_worksheet(root: ET.Element, name: str) -> ET.Element | None:
     return None
 
 
-def _parse_info_report_date(root: ET.Element) -> datetime | None:
+def _parse_info_report_date(root: ET.Element):
     ws = _find_worksheet(root, "Info")
     if ws is None:
         return None
@@ -99,12 +49,7 @@ def _parse_info_report_date(root: ET.Element) -> datetime | None:
         cells = _row_cells(row)
         values = [cells.get(i, "") for i in sorted(cells.keys())]
         if len(values) >= 2 and values[0] == "Aangemaakt op":
-            raw = values[1]
-            for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"):
-                try:
-                    return datetime.strptime(raw[:19], fmt)
-                except ValueError:
-                    continue
+            return parse_datetime_value(values[1])
     return None
 
 
@@ -145,20 +90,23 @@ def parse_excel_xml(content: bytes) -> ParseResult:
 
         order_number = get_col("Order number")
         bedrijf = get_col("Bedrijf")
-        geplaatst_raw = get_col("Geplaatst op")
-        gepland_raw = get_col("Gepland")
-        line_type_raw = get_col("On-/Offnet")
+        geplaatst_op = parse_date_value(get_col("Geplaatst op"))
+        gepland = parse_date_value(get_col("Gepland"))
+        line_type = parse_line_type(get_col("On-/Offnet"))
 
         if not order_number:
             result.skipped_rows += 1
             continue
 
-        geplaatst_op = _parse_date(geplaatst_raw)
-        gepland = _parse_date(gepland_raw)
-        line_type = parse_line_type(line_type_raw)
+        order_type = get_col("Order type")
+        if not is_allowed_order_type(order_type):
+            result.filtered_order_type += 1
+            continue
 
         if not bedrijf or not geplaatst_op or not gepland or not line_type:
-            result.warnings.append(f"Rij {row_idx} overgeslagen: ontbrekende verplichte velden voor order {order_number}")
+            result.warnings.append(
+                f"Rij {row_idx} overgeslagen: ontbrekende verplichte velden voor order {order_number}"
+            )
             result.skipped_rows += 1
             continue
 
@@ -172,8 +120,10 @@ def parse_excel_xml(content: bytes) -> ParseResult:
             )
         )
 
-    if not result.orders and result.skipped_rows > 0:
-        result.warnings.append("Geen geldige orders geïmporteerd")
-
-    logger.info("Parsed %d orders, skipped %d rows", len(result.orders), result.skipped_rows)
-    return result
+    logger.info(
+        "Parsed %d orders from XML, skipped %d rows, filtered %d by order type",
+        len(result.orders),
+        result.skipped_rows,
+        result.filtered_order_type,
+    )
+    return finalize_parse_result(result)

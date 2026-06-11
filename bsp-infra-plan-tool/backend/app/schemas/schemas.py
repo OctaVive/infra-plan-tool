@@ -20,6 +20,17 @@ class SettingsResponse(BaseModel):
     retention_days: int
 
 
+class ClearDataRequest(BaseModel):
+    confirm: bool = Field(description="Must be true to confirm data deletion")
+
+
+class ClearDataResponse(BaseModel):
+    changes_deleted: int
+    orders_deleted: int
+    uploads_deleted: int
+    message: str
+
+
 class ReportUploadResponse(BaseModel):
     id: UUID
     uploaded_at: datetime

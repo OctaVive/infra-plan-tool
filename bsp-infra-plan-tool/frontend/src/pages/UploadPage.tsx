@@ -4,6 +4,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle, FileUp, AlertCircle, Loader2 } from "lucide-react";
 import { api, type ReportUpload } from "@/api/client";
 
+const ALLOWED_EXTENSIONS = [".xml", ".xlsx", ".xlsm"];
+
+function isAllowedReportFile(file: File): boolean {
+  const name = file.name.toLowerCase();
+  return ALLOWED_EXTENSIONS.some((ext) => name.endsWith(ext));
+}
+
 export default function UploadPage() {
   const [dragOver, setDragOver] = useState(false);
   const [result, setResult] = useState<ReportUpload | null>(null);
@@ -28,8 +35,8 @@ export default function UploadPage() {
 
   const handleFile = useCallback(
     (file: File) => {
-      if (!file.name.toLowerCase().endsWith(".xml")) {
-        setError("Alleen .xml bestanden zijn toegestaan");
+      if (!isAllowedReportFile(file)) {
+        setError("Alleen .xml, .xlsx en .xlsm bestanden zijn toegestaan");
         return;
       }
       mutation.mutate(file);
@@ -52,7 +59,7 @@ export default function UploadPage() {
       <div>
         <h2 className="text-2xl font-bold">Rapport uploaden</h2>
         <p className="text-gray-500 dark:text-gray-400 mt-1">
-          Upload het dagelijkse Excel-XML bestand (tabblad Lijn orders)
+          Upload het dagelijkse rapport (.xlsx, .xlsm of Excel-XML)
         </p>
       </div>
 
@@ -72,13 +79,13 @@ export default function UploadPage() {
           <FileUp className="mx-auto text-gray-400" size={40} />
         )}
         <p className="mt-4 font-medium">
-          {mutation.isPending ? "Verwerken..." : "Sleep een .xml bestand hierheen"}
+          {mutation.isPending ? "Verwerken..." : "Sleep een rapportbestand hierheen"}
         </p>
         <p className="text-sm text-gray-500 mt-1">of</p>
         <label className="mt-3 inline-block">
           <input
             type="file"
-            accept=".xml"
+            accept=".xml,.xlsx,.xlsm"
             className="hidden"
             disabled={mutation.isPending}
             onChange={(e) => {

@@ -6,6 +6,7 @@ alembic==1.14.0
 pydantic==2.10.3
 pydantic-settings==2.6.1
 python-multipart==0.0.19
+openpyxl==3.1.5
 holidays==0.62
 apscheduler==3.10.4
 httpx==0.28.1

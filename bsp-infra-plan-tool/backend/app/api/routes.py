@@ -12,6 +12,8 @@ from app.config import settings
 from app.database import get_db
 from app.models.models import LineType, OrderChange, ReportUpload
 from app.schemas.schemas import (
+    ClearDataRequest,
+    ClearDataResponse,
     CustomerCard,
     DashboardResponse,
     KpiResponse,
@@ -23,6 +25,7 @@ from app.schemas.schemas import (
     SettingsResponse,
     SlaSettingsUpdate,
 )
+from app.services.data_service import clear_all_data
 from app.services.report_service import DuplicateReportError, process_report_upload
 from app.services.settings_service import (
     get_retention_days,
@@ -31,7 +34,8 @@ from app.services.settings_service import (
     set_sla_days,
     sla_configured,
 )
-from app.services.xml_parser import parse_excel_xml
+from app.services.report_parser import parse_report
+from app.services.report_types import ALLOWED_EXTENSIONS
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +47,13 @@ async def upload_report(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
 ):
-    if not file.filename or not file.filename.lower().endswith(".xml"):
-        raise HTTPException(status_code=400, detail="Alleen .xml bestanden zijn toegestaan")
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Bestandsnaam ontbreekt")
+
+    ext = file.filename.lower().rsplit(".", 1)[-1] if "." in file.filename else ""
+    if f".{ext}" not in ALLOWED_EXTENSIONS:
+        allowed = ", ".join(sorted(ALLOWED_EXTENSIONS))
+        raise HTTPException(status_code=400, detail=f"Alleen {allowed} bestanden zijn toegestaan")
 
     content = await file.read()
     max_bytes = settings.max_upload_size_mb * 1024 * 1024
@@ -52,7 +61,7 @@ async def upload_report(
         raise HTTPException(status_code=400, detail=f"Bestand te groot (max {settings.max_upload_size_mb} MB)")
 
     try:
-        parse_result = parse_excel_xml(content)
+        parse_result = parse_report(content, file.filename)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -288,4 +297,18 @@ async def update_retention(data: RetentionSettingsUpdate, db: AsyncSession = Dep
         sla_days=sla,
         sla_configured=sla_configured(sla),
         retention_days=retention,
+    )
+
+
+@router.post("/admin/clear-data", response_model=ClearDataResponse)
+async def clear_data(data: ClearDataRequest, db: AsyncSession = Depends(get_db)):
+    if not data.confirm:
+        raise HTTPException(
+            status_code=400,
+            detail="Bevestiging vereist: stel confirm op true in",
+        )
+    result = await clear_all_data(db)
+    return ClearDataResponse(
+        **result,
+        message="Alle orders, uploads en wijzigingsgeschiedenis zijn verwijderd. SLA-instellingen zijn behouden.",
     )
