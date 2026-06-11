@@ -43,14 +43,14 @@ export default function HistoryPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Wijzigingsgeschiedenis</h2>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
+          <h2 className="vz-page-title">Wijzigingsgeschiedenis</h2>
+          <p className="vz-page-subtitle">
             Overzicht van alle gedetecteerde wijzigingen
           </p>
         </div>
         <button
           onClick={handleExport}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-ziggo/40 text-ziggo text-sm font-medium hover:bg-ziggo-50 dark:hover:bg-ziggo/10"
         >
           <Download size={16} />
           Exporteer CSV
@@ -64,12 +64,12 @@ export default function HistoryPage() {
             placeholder="Zoek op bedrijf of order..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="flex-1 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+            className="flex-1 px-4 py-2 vz-input"
           />
           <select
             value={slaFilter}
             onChange={(e) => { setSlaFilter(e.target.value); setPage(1); }}
-            className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+            className="px-4 py-2 vz-input"
           >
             <option value="all">Alle statussen</option>
             <option value="risk">Alleen SLA-risico</option>
@@ -77,7 +77,7 @@ export default function HistoryPage() {
           <select
             value={lineType}
             onChange={(e) => { setLineType(e.target.value); setPage(1); }}
-            className="px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+            className="px-4 py-2 vz-input"
           >
             <option value="all">Alle lijn types</option>
             <option value="onnet">Onnet</option>
@@ -94,14 +94,14 @@ export default function HistoryPage() {
         />
       </div>
 
-      <div className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-x-auto">
+      <div className="vz-card overflow-x-auto">
         {isLoading ? (
           <div className="p-8 text-center text-gray-500">Laden...</div>
         ) : !data?.items.length ? (
           <div className="p-8 text-center text-gray-500">Geen wijzigingen gevonden.</div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400">
+            <thead className="bg-gray-50 dark:bg-neutral-800/50 text-gray-500 dark:text-neutral-400">
               <tr>
                 <th className="px-4 py-3 text-left">Datum</th>
                 <th className="px-4 py-3 text-left">Bedrijf</th>
@@ -115,7 +115,7 @@ export default function HistoryPage() {
             </thead>
             <tbody>
               {data.items.map((c) => (
-                <tr key={c.id} className="border-t border-gray-100 dark:border-gray-800">
+                <tr key={c.id} className="border-t border-gray-100 dark:border-neutral-800">
                   <td className="px-4 py-3 whitespace-nowrap">{formatDateTime(c.created_at)}</td>
                   <td className="px-4 py-3">{c.bedrijf}</td>
                   <td className="px-4 py-3 font-mono text-xs">{c.order_number}</td>
@@ -125,13 +125,13 @@ export default function HistoryPage() {
                   <td className="px-4 py-3">{formatDate(c.sla_deadline)}</td>
                   <td className="px-4 py-3">
                     {c.is_sla_risk ? (
-                      <span className="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
+                      <span className="vz-badge-sla">
                         {formatSlaRiskLabel(c.sla_days_over)}
                       </span>
                     ) : c.is_new_order ? (
-                      <span className="px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">Nieuw</span>
+                      <span className="vz-badge-new">Nieuw</span>
                     ) : (
-                      <span className="px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">Gewijzigd</span>
+                      <span className="vz-badge-changed">Gewijzigd</span>
                     )}
                   </td>
                 </tr>
@@ -150,14 +150,14 @@ export default function HistoryPage() {
             <button
               disabled={page <= 1}
               onClick={() => setPage((p) => p - 1)}
-              className="px-3 py-1 rounded border border-gray-200 dark:border-gray-700 disabled:opacity-40"
+              className="px-3 py-1 rounded border border-gray-200 dark:border-neutral-700 disabled:opacity-40 hover:border-vodafone/40"
             >
               Vorige
             </button>
             <button
               disabled={page >= data.pages}
               onClick={() => setPage((p) => p + 1)}
-              className="px-3 py-1 rounded border border-gray-200 dark:border-gray-700 disabled:opacity-40"
+              className="px-3 py-1 rounded border border-gray-200 dark:border-neutral-700 disabled:opacity-40 hover:border-vodafone/40"
             >
               Volgende
             </button>

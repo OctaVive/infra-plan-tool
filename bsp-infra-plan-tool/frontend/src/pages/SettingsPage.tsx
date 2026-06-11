@@ -71,33 +71,33 @@ export default function SettingsPage() {
   return (
     <div className="max-w-2xl space-y-8">
       <div>
-        <h2 className="text-2xl font-bold">Instellingen</h2>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">
+        <h2 className="vz-page-title">Instellingen</h2>
+        <p className="vz-page-subtitle">
           Configureer SLA-waarden en bewaartermijn
         </p>
       </div>
 
       {saved && (
-        <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-sm">
+        <div className="flex items-center gap-2 text-ziggo dark:text-ziggo-200 text-sm">
           <CheckCircle size={16} />
           Instellingen opgeslagen
         </div>
       )}
 
       {clearResult && (
-        <div className="flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4 text-green-700 dark:text-green-300 text-sm">
+        <div className="flex items-center gap-2 rounded-lg bg-ziggo-50 dark:bg-ziggo/10 border border-ziggo/25 p-4 text-ziggo-800 dark:text-ziggo-100 text-sm">
           <CheckCircle size={16} className="shrink-0" />
           {clearResult}
         </div>
       )}
 
       {!settings?.sla_configured && (
-        <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 text-amber-800 dark:text-amber-200 text-sm">
+        <div className="rounded-lg bg-ziggo-50 dark:bg-ziggo/10 border border-ziggo/25 dark:border-ziggo/20 p-4 text-ziggo-900 dark:text-ziggo-100 text-sm">
           SLA-dagen zijn nog niet geconfigureerd. Stel de waarden in voordat u rapporten uploadt.
         </div>
       )}
 
-      <section className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 space-y-5">
+      <section className="vz-card p-6 space-y-5">
         <h3 className="font-semibold text-lg">SLA werkdagen per lijn type</h3>
         <p className="text-sm text-gray-500">
           Berekend vanaf Geplaatst op, exclusief weekenden en Nederlandse feestdagen.
@@ -116,7 +116,7 @@ export default function SettingsPage() {
                 max={999}
                 value={value}
                 onChange={(e) => set(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+                className="w-full vz-input"
               />
               <span className="text-xs text-gray-400 mt-1 block">werkdagen</span>
             </div>
@@ -125,14 +125,14 @@ export default function SettingsPage() {
         <button
           onClick={() => slaMutation.mutate()}
           disabled={slaMutation.isPending}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50"
+          className="flex items-center gap-2 vz-btn-primary disabled:opacity-50"
         >
           <Save size={16} />
           SLA opslaan
         </button>
       </section>
 
-      <section className="rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 space-y-5">
+      <section className="vz-card p-6 space-y-5">
         <h3 className="font-semibold text-lg">Bewaartermijn wijzigingslog</h3>
         <div>
           <label className="block text-sm font-medium mb-1">Retentie (dagen)</label>
@@ -142,24 +142,24 @@ export default function SettingsPage() {
             max={3650}
             value={retention}
             onChange={(e) => setRetention(Number(e.target.value))}
-            className="w-full max-w-xs px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+            className="w-full max-w-xs vz-input"
           />
         </div>
         <button
           onClick={() => retentionMutation.mutate()}
           disabled={retentionMutation.isPending}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50"
+          className="flex items-center gap-2 vz-btn-primary disabled:opacity-50"
         >
           <Save size={16} />
           Retentie opslaan
         </button>
       </section>
 
-      <section className="rounded-xl border border-red-200 dark:border-red-900/50 bg-white dark:bg-gray-900 p-6 space-y-4">
+      <section className="rounded-xl border border-vodafone/30 dark:border-vodafone/25 bg-white dark:bg-neutral-900 p-6 space-y-4">
         <div className="flex items-start gap-3">
-          <AlertTriangle className="text-red-500 shrink-0 mt-0.5" size={20} />
+          <AlertTriangle className="text-vodafone shrink-0 mt-0.5" size={20} />
           <div>
-            <h3 className="font-semibold text-lg text-red-700 dark:text-red-400">Gegevens wissen</h3>
+            <h3 className="font-semibold text-lg text-vodafone dark:text-vodafone-200">Gegevens wissen</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Verwijdert alle orders, rapport-uploads en wijzigingsgeschiedenis. SLA- en
               retentie-instellingen blijven behouden. Deze actie kan niet ongedaan worden gemaakt.
@@ -171,7 +171,7 @@ export default function SettingsPage() {
             setClearResult(null);
             setShowClearModal(true);
           }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-red-300 dark:border-red-800 text-red-700 dark:text-red-400 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-vodafone/40 text-vodafone text-sm font-medium hover:bg-vodafone-50 dark:hover:bg-vodafone/10"
         >
           <Trash2 size={16} />
           Alle gegevens wissen
@@ -189,7 +189,7 @@ export default function SettingsPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="clear-data-title"
-            className="relative w-full max-w-md rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 shadow-xl"
+            className="relative w-full max-w-md rounded-xl border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-6 shadow-xl"
           >
             <button
               onClick={closeClearModal}
@@ -200,8 +200,8 @@ export default function SettingsPage() {
             </button>
 
             <div className="flex items-start gap-3 mb-4">
-              <div className="p-2 rounded-full bg-red-100 dark:bg-red-900/30">
-                <AlertTriangle className="text-red-600 dark:text-red-400" size={24} />
+              <div className="p-2 rounded-full bg-vodafone-50 dark:bg-vodafone/15">
+                <AlertTriangle className="text-vodafone" size={24} />
               </div>
               <div>
                 <h3 id="clear-data-title" className="font-semibold text-lg">
@@ -234,7 +234,7 @@ export default function SettingsPage() {
             </label>
 
             {clearMutation.isError && (
-              <p className="text-sm text-red-600 dark:text-red-400 mb-4">
+              <p className="text-sm text-vodafone dark:text-vodafone-200 mb-4">
                 {(clearMutation.error as Error).message}
               </p>
             )}
@@ -250,7 +250,7 @@ export default function SettingsPage() {
               <button
                 onClick={() => clearMutation.mutate()}
                 disabled={!clearConfirmed || clearMutation.isPending}
-                className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 rounded-lg bg-vodafone text-white text-sm font-medium hover:bg-vodafone-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {clearMutation.isPending ? "Bezig..." : "Ja, gegevens wissen"}
               </button>

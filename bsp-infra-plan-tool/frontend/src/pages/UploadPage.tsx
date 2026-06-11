@@ -61,8 +61,8 @@ export default function UploadPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">Rapport uploaden</h2>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">
+        <h2 className="vz-page-title">Rapport uploaden</h2>
+        <p className="vz-page-subtitle">
           Upload het dagelijkse rapport (.xlsx, .xlsm of Excel-XML)
         </p>
       </div>
@@ -73,12 +73,12 @@ export default function UploadPage() {
         onDrop={onDrop}
         className={`relative rounded-xl border-2 border-dashed p-12 text-center transition-colors ${
           dragOver
-            ? "border-brand-500 bg-brand-50 dark:bg-brand-900/10"
-            : "border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900"
+            ? "border-vodafone bg-vodafone-50 dark:bg-vodafone/10"
+            : "border-gray-300 dark:border-neutral-700 bg-white dark:bg-neutral-900"
         }`}
       >
         {mutation.isPending ? (
-          <Loader2 className="mx-auto text-brand-600 animate-spin" size={40} />
+          <Loader2 className="mx-auto text-vodafone animate-spin" size={40} />
         ) : (
           <FileUp className="mx-auto text-gray-400" size={40} />
         )}
@@ -97,22 +97,22 @@ export default function UploadPage() {
               if (file) handleFile(file);
             }}
           />
-          <span className="cursor-pointer px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors">
+          <span className="cursor-pointer vz-btn-primary">
             Bestand kiezen
           </span>
         </label>
       </div>
 
       {error && (
-        <div className="flex items-start gap-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4">
-          <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={18} />
-          <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
+        <div className="flex items-start gap-3 rounded-lg bg-vodafone-50 dark:bg-vodafone/10 border border-vodafone/20 dark:border-vodafone/30 p-4">
+          <AlertCircle className="text-vodafone shrink-0 mt-0.5" size={18} />
+          <p className="text-vodafone-800 dark:text-vodafone-100 text-sm">{error}</p>
         </div>
       )}
 
       {result && (
-        <div className="rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-5 space-y-3">
-          <div className="flex items-center gap-2 text-green-700 dark:text-green-300 font-medium">
+        <div className="rounded-xl border border-ziggo/30 dark:border-ziggo/25 bg-ziggo-50 dark:bg-ziggo/10 p-5 space-y-3">
+          <div className="flex items-center gap-2 text-ziggo-800 dark:text-ziggo-100 font-medium">
             <CheckCircle size={20} />
             Upload succesvol
           </div>
@@ -131,17 +131,17 @@ export default function UploadPage() {
             </div>
             <div>
               <dt className="text-gray-500">Actieve SLA-risico&apos;s</dt>
-              <dd className="font-medium text-red-600">{activeSlaRisk ?? result.sla_risk_count}</dd>
+              <dd className="font-medium text-vodafone">{activeSlaRisk ?? result.sla_risk_count}</dd>
             </div>
           </dl>
           {result.warnings && (
-            <div className="text-sm text-amber-700 dark:text-amber-300 whitespace-pre-wrap">
+            <div className="text-sm text-ziggo-800 dark:text-ziggo-100 whitespace-pre-wrap">
               {result.warnings}
             </div>
           )}
           <button
             onClick={() => navigate("/")}
-            className="mt-2 px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700"
+            className="mt-2 vz-btn-primary"
           >
             Naar dashboard
           </button>

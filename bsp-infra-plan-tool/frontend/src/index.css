@@ -2,6 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply text-gray-900 dark:text-gray-100 antialiased;
+@layer base {
+  body {
+    @apply text-gray-900 dark:text-gray-100 antialiased;
+    @apply bg-gray-50 dark:bg-neutral-950;
+  }
+
+  ::selection {
+    @apply bg-vodafone/20 text-vodafone-800;
+  }
+}
+
+@layer components {
+  .vz-gradient-bar {
+    @apply h-1 w-full bg-vz-gradient;
+  }
+
+  .vz-card {
+    @apply rounded-xl border border-gray-200 dark:border-neutral-800 bg-white dark:bg-neutral-900;
+  }
+
+  .vz-input {
+    @apply px-3 py-2 rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm;
+    @apply focus:outline-none focus:ring-2 focus:ring-vodafone/30 focus:border-vodafone;
+  }
+
+  .vz-btn-primary {
+    @apply px-4 py-2 rounded-lg bg-vodafone text-white text-sm font-medium;
+    @apply hover:bg-vodafone-700 transition-colors disabled:opacity-50;
+  }
+
+  .vz-btn-secondary {
+    @apply px-4 py-2 rounded-lg border border-ziggo text-ziggo text-sm font-medium;
+    @apply hover:bg-ziggo-50 dark:hover:bg-ziggo/10 transition-colors disabled:opacity-50;
+  }
+
+  .vz-badge-sla {
+    @apply px-2 py-0.5 rounded-full text-xs font-medium;
+    @apply bg-vodafone-50 text-vodafone-700 border border-vodafone/20;
+    @apply dark:bg-vodafone/15 dark:text-vodafone-100 dark:border-vodafone/30;
+  }
+
+  .vz-badge-new {
+    @apply px-2 py-0.5 rounded-full text-xs font-medium;
+    @apply bg-gray-100 text-gray-700 border border-gray-200;
+    @apply dark:bg-neutral-800 dark:text-gray-200 dark:border-neutral-700;
+  }
+
+  .vz-badge-changed {
+    @apply px-2 py-0.5 rounded-full text-xs font-medium;
+    @apply bg-ziggo-50 text-ziggo-800 border border-ziggo/25;
+    @apply dark:bg-ziggo/15 dark:text-ziggo-100 dark:border-ziggo/30;
+  }
+
+  .vz-page-title {
+    @apply text-2xl font-bold text-gray-900 dark:text-white;
+  }
+
+  .vz-page-subtitle {
+    @apply text-gray-500 dark:text-gray-400 mt-1;
+  }
 }

@@ -15,7 +15,7 @@ interface SlaDaysSortButtonsProps {
 export default function SlaDaysSortButtons({ value, onChange }: SlaDaysSortButtonsProps) {
   return (
     <div
-      className="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-1"
+      className="inline-flex rounded-lg border border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 p-1"
       role="group"
       aria-label="Sorteer op overschreden werkdagen"
     >
@@ -28,8 +28,8 @@ export default function SlaDaysSortButtons({ value, onChange }: SlaDaysSortButto
             onClick={() => onChange(optionValue)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
               active
-                ? "bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900"
-                : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                ? "bg-vz-gradient text-white shadow-sm"
+                : "text-gray-600 dark:text-neutral-300 hover:bg-gray-50 dark:hover:bg-neutral-800"
             }`}
             aria-pressed={active}
           >
